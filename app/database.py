@@ -1,8 +1,7 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from app.models import Base
 
-# ── Change this to PostgreSQL URL when deploying to production ──
 DATABASE_URL = "sqlite:///./sacad.db"
 
 engine = create_engine(
@@ -13,11 +12,11 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
-    """Create all tables if they don't exist."""
+    """Drop and recreate all tables to apply schema changes."""
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
 def get_db():
-    """FastAPI dependency — yields a DB session per request."""
     db = SessionLocal()
     try:
         yield db
