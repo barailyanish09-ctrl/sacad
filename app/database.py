@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 from app.models import Base
 
@@ -12,8 +12,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
-    """Drop and recreate all tables to apply schema changes."""
-    Base.metadata.drop_all(bind=engine)
+    """Create tables only if they don't exist."""
     Base.metadata.create_all(bind=engine)
 
 def get_db():
