@@ -3,52 +3,202 @@ import requests
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import random
 
 API_BASE = "https://sacad-api.onrender.com"
 
 st.set_page_config(
-    page_title="SACAD — South Asia Cyber Threat Intelligence",
-    page_icon="🛡️",
+    page_title="SACAD Threat Intelligence",
+    page_icon="https://sacad-api.onrender.com/favicon.ico",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ── Dark cyber theme ──
 st.markdown("""
 <style>
-    .stApp { background-color: #0a0e1a; color: #e2e8f0; }
-    .metric-card {
-        background: linear-gradient(135deg, #1a1f35, #0d1226);
-        border: 1px solid #2d3748;
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-    }
-    .metric-value { font-size: 2.5rem; font-weight: 800; color: #63b3ed; }
-    .metric-label { font-size: 0.85rem; color: #a0aec0; text-transform: uppercase; letter-spacing: 1px; }
-    .critical { color: #fc8181 !important; }
-    .high { color: #f6ad55 !important; }
-    .medium { color: #f6e05e !important; }
-    .low { color: #68d391 !important; }
-    .header-title {
-        font-size: 2.2rem;
-        font-weight: 900;
-        background: linear-gradient(90deg, #63b3ed, #76e4f7);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .sidebar .sidebar-content { background-color: #0d1226; }
-    div[data-testid="stSidebar"] { background-color: #0d1226; }
-    .stDataFrame { background-color: #1a1f35; }
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, .stApp {
+    background-color: #060910;
+    color: #c9d1d9;
+    font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.stApp { padding: 0; }
+
+/* Hide streamlit chrome */
+#MainMenu, footer, header { visibility: hidden; }
+.block-container { padding: 2rem 2.5rem 4rem; max-width: 1400px; }
+
+/* Top bar */
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1c2333;
+    padding-bottom: 1.2rem;
+    margin-bottom: 2rem;
+}
+.topbar-left { display: flex; align-items: baseline; gap: 1rem; }
+.topbar-logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #f0f6fc;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.topbar-sub {
+    font-size: 0.75rem;
+    color: #6e7681;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.status-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #3fb950;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+.live-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: #3fb950;
+    letter-spacing: 0.1em;
+}
+
+/* KPI grid */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: #1c2333;
+    border: 1px solid #1c2333;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+.kpi-cell {
+    background: #0d1117;
+    padding: 1.2rem 1.4rem;
+}
+.kpi-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 2rem;
+    font-weight: 600;
+    color: #f0f6fc;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+}
+.kpi-value.red    { color: #f85149; }
+.kpi-value.orange { color: #d29922; }
+.kpi-value.blue   { color: #58a6ff; }
+.kpi-label {
+    font-size: 0.7rem;
+    color: #6e7681;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* Section headers */
+.section-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: #6e7681;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    border-bottom: 1px solid #1c2333;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Attack feed */
+.feed-item {
+    display: grid;
+    grid-template-columns: 90px 1fr 80px 100px;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid #0d1117;
+    font-size: 0.82rem;
+}
+.feed-item:hover { background: #0d1117; }
+.feed-sev {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    text-align: center;
+}
+.sev-critical { background: #3d1f1f; color: #f85149; border: 1px solid #f85149; }
+.sev-high     { background: #2d1f0a; color: #d29922; border: 1px solid #d29922; }
+.sev-medium   { background: #2d2a0a; color: #e3b341; border: 1px solid #e3b341; }
+.sev-low      { background: #0d2318; color: #3fb950; border: 1px solid #3fb950; }
+.feed-title   { color: #c9d1d9; }
+.feed-meta    { color: #6e7681; font-size: 0.75rem; }
+.feed-country {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: #58a6ff;
+}
+
+/* Sidebar */
+div[data-testid="stSidebar"] {
+    background: #0d1117;
+    border-right: 1px solid #1c2333;
+}
+div[data-testid="stSidebar"] .block-container { padding: 1.5rem; }
+
+/* Inputs */
+.stSelectbox > div > div {
+    background: #0d1117 !important;
+    border: 1px solid #1c2333 !important;
+    color: #c9d1d9 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 0.8rem !important;
+}
+.stTextInput input {
+    background: #0d1117 !important;
+    border: 1px solid #1c2333 !important;
+    color: #c9d1d9 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 0.8rem !important;
+    border-radius: 4px !important;
+}
+.stButton button {
+    background: #1c2333 !important;
+    border: 1px solid #30363d !important;
+    color: #c9d1d9 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.05em !important;
+    border-radius: 4px !important;
+}
+.stButton button:hover {
+    background: #21262d !important;
+    border-color: #58a6ff !important;
+    color: #58a6ff !important;
+}
+
+/* Divider */
+hr { border-color: #1c2333; }
+
+/* Dataframe */
+.stDataFrame { border: 1px solid #1c2333; border-radius: 4px; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Header ──
-st.markdown('<p class="header-title">🛡️ SACAD — South Asia Cyber Threat Intelligence</p>', unsafe_allow_html=True)
-st.markdown("**The open cyber attack graph for South Asia** · Live dataset of real incidents, IoCs, and targets")
-st.divider()
-
-# ── Data fetching ──
+# ── Data ──
 @st.cache_data(ttl=60)
 def fetch_stats():
     try:
@@ -71,226 +221,253 @@ def fetch_attacks(country=None, attack_type=None, sector=None, severity=None):
 @st.cache_data(ttl=60)
 def fetch_recent():
     try:
-        return requests.get(f"{API_BASE}/attacks/recent?limit=5", timeout=10).json()
+        return requests.get(f"{API_BASE}/attacks/recent?limit=8", timeout=10).json()
     except:
         return []
 
-stats   = fetch_stats()
-recent  = fetch_recent()
+stats  = fetch_stats()
+recent = fetch_recent()
 
-# ── KPI Cards ──
-if stats:
-    c1, c2, c3, c4, c5 = st.columns(5)
-    cards = [
-        (c1, stats["total_attacks"], "Total Attacks", ""),
-        (c2, stats["recent_30_days"], "Last 30 Days", ""),
-        (c3, len(stats["by_country"]), "Countries", ""),
-        (c4, len(stats["by_sector"]), "Sectors Hit", ""),
-        (c5, stats["by_severity"].get("critical", 0), "Critical", "critical"),
-    ]
-    for col, val, label, cls in cards:
-        with col:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-value {cls}">{val}</div>
-                <div class="metric-label">{label}</div>
-            </div>
-            """, unsafe_allow_html=True)
-    st.divider()
+# ── Top bar ──
+st.markdown("""
+<div class="topbar">
+    <div class="topbar-left">
+        <span class="topbar-logo">SACAD</span>
+        <span class="topbar-sub">South Asia Cyber Attack Dataset</span>
+    </div>
+    <div><span class="status-dot"></span><span class="live-badge">LIVE</span></div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── KPIs ──
+total    = stats["total_attacks"] if stats else 0
+recent30 = stats["recent_30_days"] if stats else 0
+countries = len(stats["by_country"]) if stats else 0
+sectors  = len(stats["by_sector"]) if stats else 0
+critical = stats["by_severity"].get("critical", 0) if stats else 0
+
+st.markdown(f"""
+<div class="kpi-grid">
+    <div class="kpi-cell">
+        <div class="kpi-value blue">{total}</div>
+        <div class="kpi-label">Total Incidents</div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-value">{recent30}</div>
+        <div class="kpi-label">Last 30 Days</div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-value">{countries}</div>
+        <div class="kpi-label">Countries</div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-value">{sectors}</div>
+        <div class="kpi-label">Sectors</div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-value red">{critical}</div>
+        <div class="kpi-label">Critical</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ── Sidebar ──
 with st.sidebar:
-    st.markdown("### 🔍 Filters")
+    st.markdown('<div class="section-header">Filters</div>', unsafe_allow_html=True)
     country_filter  = st.selectbox("Country",     ["All", "Nepal", "India", "Bangladesh", "Pakistan", "Sri Lanka"])
     type_filter     = st.selectbox("Attack Type", ["All", "phishing", "malware", "ransomware", "defacement", "ddos", "data_breach", "scam"])
     sector_filter   = st.selectbox("Sector",      ["All", "banking", "government", "healthcare", "education", "telecom", "individual"])
     severity_filter = st.selectbox("Severity",    ["All", "critical", "high", "medium", "low"])
-    st.divider()
-    st.markdown("### 🔗 Links")
-    st.markdown("[📡 Live API](https://sacad-api.onrender.com)")
-    st.markdown("[📖 API Docs](https://sacad-api.onrender.com/docs)")
-    st.markdown("[💻 GitHub](https://github.com/barailyanish09-ctrl/sacad)")
+    st.markdown("---")
+    st.markdown('<div class="section-header">Links</div>', unsafe_allow_html=True)
+    st.markdown("[API Endpoint](https://sacad-api.onrender.com)")
+    st.markdown("[API Documentation](https://sacad-api.onrender.com/docs)")
+    st.markdown("[GitHub Repository](https://github.com/barailyanish09-ctrl/sacad)")
 
 # ── Charts ──
-COLORS = ["#63b3ed","#76e4f7","#68d391","#f6ad55","#fc8181","#b794f4","#fbb6ce","#90cdf4"]
+PLOT_COLORS = ["#58a6ff","#3fb950","#d29922","#f85149","#bc8cff","#76e3ea","#ffa657","#79c0ff"]
+PLOT_BG     = "#060910"
+PLOT_PAPER  = "#060910"
+PLOT_GRID   = "#1c2333"
+FONT_COLOR  = "#6e7681"
+
+def base_layout():
+    return dict(
+        paper_bgcolor=PLOT_PAPER,
+        plot_bgcolor=PLOT_BG,
+        font=dict(family="IBM Plex Mono", color=FONT_COLOR, size=11),
+        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis=dict(gridcolor=PLOT_GRID, linecolor=PLOT_GRID, tickcolor=PLOT_GRID),
+        yaxis=dict(gridcolor=PLOT_GRID, linecolor=PLOT_GRID, tickcolor=PLOT_GRID),
+    )
 
 if stats:
     col1, col2 = st.columns(2)
-
     with col1:
-        st.markdown("#### 🌏 Attacks by Country")
+        st.markdown('<div class="section-header">Incidents by Country</div>', unsafe_allow_html=True)
         df = pd.DataFrame(list(stats["by_country"].items()), columns=["Country", "Count"])
-        fig = px.bar(df, x="Country", y="Count", color="Country",
-                     color_discrete_sequence=COLORS,
-                     template="plotly_dark")
-        fig.update_layout(paper_bgcolor="#0a0e1a", plot_bgcolor="#0d1226", showlegend=False)
+        fig = px.bar(df, x="Country", y="Count", color="Country", color_discrete_sequence=PLOT_COLORS)
+        fig.update_layout(**base_layout(), showlegend=False, bargap=0.4)
+        fig.update_traces(marker_line_width=0)
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.markdown("#### ⚡ Attack Types")
+        st.markdown('<div class="section-header">Attack Vector Distribution</div>', unsafe_allow_html=True)
         df2 = pd.DataFrame(list(stats["by_attack_type"].items()), columns=["Type", "Count"])
-        fig2 = px.pie(df2, names="Type", values="Count",
-                      color_discrete_sequence=COLORS,
-                      template="plotly_dark", hole=0.4)
-        fig2.update_layout(paper_bgcolor="#0a0e1a")
+        fig2 = px.pie(df2, names="Type", values="Count", color_discrete_sequence=PLOT_COLORS, hole=0.55)
+        fig2.update_layout(paper_bgcolor=PLOT_PAPER, font=dict(family="IBM Plex Mono", color=FONT_COLOR, size=11),
+                           margin=dict(l=10, r=10, t=10, b=10), legend=dict(bgcolor="rgba(0,0,0,0)"))
+        fig2.update_traces(textfont_color="#c9d1d9")
         st.plotly_chart(fig2, use_container_width=True)
 
     col3, col4 = st.columns(2)
-
     with col3:
-        st.markdown("#### 🏢 Targeted Sectors")
+        st.markdown('<div class="section-header">Targeted Sectors</div>', unsafe_allow_html=True)
         df3 = pd.DataFrame(list(stats["by_sector"].items()), columns=["Sector", "Count"])
         fig3 = px.bar(df3, x="Count", y="Sector", orientation="h",
-                      color="Count", color_continuous_scale="Blues",
-                      template="plotly_dark")
-        fig3.update_layout(paper_bgcolor="#0a0e1a", plot_bgcolor="#0d1226")
+                      color="Count", color_continuous_scale=[[0, "#1c2333"],[1, "#58a6ff"]])
+        fig3.update_layout(**base_layout(), coloraxis_showscale=False, bargap=0.4)
+        fig3.update_traces(marker_line_width=0)
         st.plotly_chart(fig3, use_container_width=True)
 
     with col4:
-        st.markdown("#### 🚨 Severity Breakdown")
+        st.markdown('<div class="section-header">Severity Distribution</div>', unsafe_allow_html=True)
         df4 = pd.DataFrame(list(stats["by_severity"].items()), columns=["Severity", "Count"])
-        sev_colors = {"critical": "#fc8181", "high": "#f6ad55", "medium": "#f6e05e", "low": "#68d391"}
-        fig4 = px.bar(df4, x="Severity", y="Count", color="Severity",
-                      color_discrete_map=sev_colors,
-                      template="plotly_dark")
-        fig4.update_layout(paper_bgcolor="#0a0e1a", plot_bgcolor="#0d1226", showlegend=False)
+        sev_colors = {"critical": "#f85149", "high": "#d29922", "medium": "#e3b341", "low": "#3fb950"}
+        fig4 = px.bar(df4, x="Severity", y="Count", color="Severity", color_discrete_map=sev_colors)
+        fig4.update_layout(**base_layout(), showlegend=False, bargap=0.4)
+        fig4.update_traces(marker_line_width=0)
         st.plotly_chart(fig4, use_container_width=True)
 
-# ── Recent Attacks ──
-st.divider()
-st.markdown("#### 🕐 Most Recent Attacks")
-if recent:
-    for a in recent:
-        sev = a.get("severity", "medium")
-        sev_colors = {"critical": "#fc8181", "high": "#f6ad55", "medium": "#f6e05e", "low": "#68d391"}
-        color = sev_colors.get(sev, "#a0aec0")
-        st.markdown(f"""
-        <div style="background:#1a1f35;border-left:4px solid {color};padding:10px 16px;margin:6px 0;border-radius:6px;">
-            <strong>{a.get('title','')}</strong> &nbsp;
-            <span style="color:{color};font-size:0.8rem;">● {sev.upper()}</span> &nbsp;
-            <span style="color:#a0aec0;font-size:0.8rem;">{a.get('country','')} · {a.get('attack_type','')} · {a.get('target_sector','')}</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-# ── Attack Records Table ──
-st.divider()
-st.markdown("#### 📋 Attack Records")
-
-attacks = fetch_attacks(
+# ── Threat Map ──
+attacks_all = fetch_attacks(
     country=None  if country_filter  == "All" else country_filter,
     attack_type=None if type_filter  == "All" else type_filter,
     sector=None   if sector_filter   == "All" else sector_filter,
     severity=None if severity_filter == "All" else severity_filter,
 )
 
-if attacks:
-    df = pd.DataFrame(attacks)
-    cols = ["id","title","country","attack_type","severity","target_sector","status","incident_date"]
-    available = [c for c in cols if c in df.columns]
-    st.dataframe(df[available], use_container_width=True, hide_index=True)
-    st.caption(f"Showing {len(df)} records · API: sacad-api.onrender.com")
-else:
-    st.info("No records found. Try adjusting filters.")
+st.markdown('<div class="section-header">Threat Map — South Asia</div>', unsafe_allow_html=True)
 
-# ── Threat Map ──
-st.divider()
-st.markdown("#### 🗺️ Global Threat Map")
+coords = {
+    "Nepal":      (28.3949, 84.1240),
+    "India":      (20.5937, 78.9629),
+    "Bangladesh": (23.6850, 90.3563),
+    "Pakistan":   (30.3753, 69.3451),
+    "Sri Lanka":  (7.8731,  80.7718),
+    "Bhutan":     (27.5142, 90.4336),
+    "Myanmar":    (21.9162, 95.9560),
+    "Regional":   (23.0000, 80.0000),
+}
+sev_map = {"critical": "#f85149", "high": "#d29922", "medium": "#e3b341", "low": "#3fb950"}
 
-if attacks:
+if attacks_all:
     map_data = []
-    coords = {
-        "Nepal":      (28.3949, 84.1240),
-        "India":      (20.5937, 78.9629),
-        "Bangladesh": (23.6850, 90.3563),
-        "Pakistan":   (30.3753, 69.3451),
-        "Sri Lanka":  (7.8731,  80.7718),
-        "Bhutan":     (27.5142, 90.4336),
-        "Myanmar":    (21.9162, 95.9560),
-        "Regional":   (23.0000, 80.0000),
-    }
-    sev_colors = {
-        "critical": "#fc8181",
-        "high":     "#f6ad55",
-        "medium":   "#f6e05e",
-        "low":      "#68d391"
-    }
-    for a in attacks:
-        country = a.get("country", "")
-        if country in coords:
-            lat, lon = coords[country]
-            import random
-            lat += random.uniform(-1.5, 1.5)
-            lon += random.uniform(-1.5, 1.5)
+    for a in attacks_all:
+        c = a.get("country", "")
+        if c in coords:
+            lat, lon = coords[c]
+            lat += random.uniform(-1.2, 1.2)
+            lon += random.uniform(-1.2, 1.2)
             map_data.append({
-                "lat":    lat,
-                "lon":    lon,
-                "title":  a.get("title", ""),
-                "country": country,
-                "type":   a.get("attack_type", ""),
+                "lat": lat, "lon": lon,
+                "title": a.get("title", ""),
+                "country": c,
+                "type": a.get("attack_type", ""),
                 "severity": a.get("severity", "medium"),
                 "sector": a.get("target_sector", ""),
-                "color":  sev_colors.get(a.get("severity", "medium"), "#a0aec0")
+                "color": sev_map.get(a.get("severity", "medium"), "#6e7681")
             })
 
     if map_data:
-        map_df = pd.DataFrame(map_data)
+        mdf = pd.DataFrame(map_data)
         fig_map = go.Figure()
-        for sev, color in sev_colors.items():
-            subset = map_df[map_df["severity"] == sev]
-            if not subset.empty:
+        for sev, color in sev_map.items():
+            sub = mdf[mdf["severity"] == sev]
+            if not sub.empty:
                 fig_map.add_trace(go.Scattergeo(
-                    lat=subset["lat"],
-                    lon=subset["lon"],
+                    lat=sub["lat"], lon=sub["lon"],
                     mode="markers",
                     name=sev.upper(),
-                    marker=dict(size=12, color=color, opacity=0.85,
-                                line=dict(width=1, color="#0a0e1a")),
-                    text=subset.apply(lambda r: f"{r['title']}<br>{r['country']} · {r['type']}<br>Sector: {r['sector']}", axis=1),
-                    hoverinfo="text"
+                    marker=dict(size=14, color=color, opacity=0.9,
+                                line=dict(width=1, color="#060910")),
+                    text=sub.apply(lambda r: f"{r['title']}<br>{r['country']} / {r['type']}<br>{r['sector']}", axis=1),
+                    hoverinfo="text",
+                    hovertemplate="<b>%{text}</b><extra></extra>"
                 ))
         fig_map.update_layout(
             geo=dict(
                 scope="asia",
-                showland=True, landcolor="#1a1f35",
-                showocean=True, oceancolor="#0a0e1a",
-                showcoastlines=True, coastlinecolor="#2d3748",
-                showcountries=True, countrycolor="#2d3748",
-                bgcolor="#0a0e1a",
+                showland=True, landcolor="#0d1117",
+                showocean=True, oceancolor="#060910",
+                showcoastlines=True, coastlinecolor="#1c2333",
+                showcountries=True, countrycolor="#1c2333",
+                bgcolor="#060910",
                 center=dict(lat=23, lon=82),
-                projection_scale=3.5,
+                projection_scale=3.2,
             ),
-            paper_bgcolor="#0a0e1a",
-            legend=dict(bgcolor="#1a1f35", font=dict(color="#e2e8f0")),
+            paper_bgcolor="#060910",
+            legend=dict(
+                bgcolor="rgba(0,0,0,0)",
+                font=dict(family="IBM Plex Mono", color="#6e7681", size=10),
+                orientation="h", y=-0.02
+            ),
             margin=dict(l=0, r=0, t=0, b=0),
-            height=450,
+            height=420,
         )
         st.plotly_chart(fig_map, use_container_width=True)
-        st.caption("🔴 Critical  🟠 High  🟡 Medium  🟢 Low — hover over dots for details")
+
+# ── Recent Feed ──
+st.markdown('<div class="section-header">Recent Incidents</div>', unsafe_allow_html=True)
+if recent:
+    for a in recent:
+        sev = a.get("severity", "medium")
+        st.markdown(f"""
+        <div class="feed-item">
+            <span class="feed-sev sev-{sev}">{sev.upper()}</span>
+            <span class="feed-title">{a.get('title','')}</span>
+            <span class="feed-meta">{a.get('attack_type','')}</span>
+            <span class="feed-country">{a.get('country','')}</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+# ── Records Table ──
+st.markdown('<div class="section-header">Incident Records</div>', unsafe_allow_html=True)
+if attacks_all:
+    df = pd.DataFrame(attacks_all)
+    cols = ["id","title","country","attack_type","severity","target_sector","status","incident_date"]
+    available = [c for c in cols if c in df.columns]
+    st.dataframe(df[available], use_container_width=True, hide_index=True)
+    st.caption(f"{len(df)} records · sacad-api.onrender.com")
+else:
+    st.info("No records found.")
 
 # ── IOC Search ──
-st.divider()
-st.markdown("#### 🔎 IOC Search")
-col_a, col_b = st.columns([3,1])
+st.markdown('<div class="section-header">IOC Lookup</div>', unsafe_allow_html=True)
+col_a, col_b = st.columns([4, 1])
 with col_a:
-    ioc_query = st.text_input("Search by IP address, URL, or hash", placeholder="e.g. 185.220.101")
+    ioc_query = st.text_input("", placeholder="Search by IP address, URL, or file hash")
 with col_b:
     st.markdown("<br>", unsafe_allow_html=True)
-    search_btn = st.button("Search IOCs")
+    search_btn = st.button("SEARCH")
 
 if search_btn and ioc_query:
     try:
         res = requests.get(f"{API_BASE}/ioc/search", params={"ip": ioc_query}, timeout=10).json()
         if res["total"] > 0:
-            st.success(f"Found {res['total']} match(es)")
+            st.success(f"{res['total']} match(es) found")
             for m in res["matches"]:
                 st.markdown(f"""
-                <div style="background:#1a1f35;border:1px solid #2d3748;padding:12px;border-radius:8px;margin:4px 0;">
-                    <strong>{m['title']}</strong> · {m['country']} · 
-                    <span style="color:#fc8181;">{m['severity']}</span><br>
-                    <small style="color:#a0aec0;">IPs: {m.get('ioc_ips','N/A')} · URLs: {m.get('ioc_urls','N/A')}</small>
+                <div style="background:#0d1117;border:1px solid #1c2333;border-left:3px solid #58a6ff;
+                            padding:12px 16px;border-radius:4px;margin:6px 0;font-size:0.82rem;">
+                    <strong style="color:#f0f6fc;">{m['title']}</strong>
+                    <span style="color:#6e7681;margin-left:12px;">{m['country']} · {m['severity'].upper()}</span><br>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:#6e7681;">
+                        IPs: {m.get('ioc_ips','—')} &nbsp;|&nbsp; URLs: {m.get('ioc_urls','—')}
+                    </span>
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.warning("No matches found for that IOC.")
+            st.warning("No matches found.")
     except:
         st.error("Could not reach API.")
