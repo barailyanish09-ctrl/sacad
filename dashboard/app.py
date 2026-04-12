@@ -192,6 +192,81 @@ if attacks:
 else:
     st.info("No records found. Try adjusting filters.")
 
+# ── Threat Map ──
+st.divider()
+st.markdown("#### 🗺️ Global Threat Map")
+
+if attacks:
+    map_data = []
+    coords = {
+        "Nepal":      (28.3949, 84.1240),
+        "India":      (20.5937, 78.9629),
+        "Bangladesh": (23.6850, 90.3563),
+        "Pakistan":   (30.3753, 69.3451),
+        "Sri Lanka":  (7.8731,  80.7718),
+        "Bhutan":     (27.5142, 90.4336),
+        "Myanmar":    (21.9162, 95.9560),
+        "Regional":   (23.0000, 80.0000),
+    }
+    sev_colors = {
+        "critical": "#fc8181",
+        "high":     "#f6ad55",
+        "medium":   "#f6e05e",
+        "low":      "#68d391"
+    }
+    for a in attacks:
+        country = a.get("country", "")
+        if country in coords:
+            lat, lon = coords[country]
+            import random
+            lat += random.uniform(-1.5, 1.5)
+            lon += random.uniform(-1.5, 1.5)
+            map_data.append({
+                "lat":    lat,
+                "lon":    lon,
+                "title":  a.get("title", ""),
+                "country": country,
+                "type":   a.get("attack_type", ""),
+                "severity": a.get("severity", "medium"),
+                "sector": a.get("target_sector", ""),
+                "color":  sev_colors.get(a.get("severity", "medium"), "#a0aec0")
+            })
+
+    if map_data:
+        map_df = pd.DataFrame(map_data)
+        fig_map = go.Figure()
+        for sev, color in sev_colors.items():
+            subset = map_df[map_df["severity"] == sev]
+            if not subset.empty:
+                fig_map.add_trace(go.Scattergeo(
+                    lat=subset["lat"],
+                    lon=subset["lon"],
+                    mode="markers",
+                    name=sev.upper(),
+                    marker=dict(size=12, color=color, opacity=0.85,
+                                line=dict(width=1, color="#0a0e1a")),
+                    text=subset.apply(lambda r: f"{r['title']}<br>{r['country']} · {r['type']}<br>Sector: {r['sector']}", axis=1),
+                    hoverinfo="text"
+                ))
+        fig_map.update_layout(
+            geo=dict(
+                scope="asia",
+                showland=True, landcolor="#1a1f35",
+                showocean=True, oceancolor="#0a0e1a",
+                showcoastlines=True, coastlinecolor="#2d3748",
+                showcountries=True, countrycolor="#2d3748",
+                bgcolor="#0a0e1a",
+                center=dict(lat=23, lon=82),
+                projection_scale=3.5,
+            ),
+            paper_bgcolor="#0a0e1a",
+            legend=dict(bgcolor="#1a1f35", font=dict(color="#e2e8f0")),
+            margin=dict(l=0, r=0, t=0, b=0),
+            height=450,
+        )
+        st.plotly_chart(fig_map, use_container_width=True)
+        st.caption("🔴 Critical  🟠 High  🟡 Medium  🟢 Low — hover over dots for details")
+
 # ── IOC Search ──
 st.divider()
 st.markdown("#### 🔎 IOC Search")
