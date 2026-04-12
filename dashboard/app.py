@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 import plotly.express as px
 
-API_BASE = "http://localhost:8000"
+API_BASE = "https://sacad-api.onrender.com"
 
 st.set_page_config(
     page_title="SACAD Dashboard",
