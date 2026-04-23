@@ -946,7 +946,7 @@ def seed():
             return
 
         added = 0
-       for item in SEED_ATTACKS:
+        for item in SEED_ATTACKS:
             duplicate = (
                 db.query(models.Attack)
                 .filter(models.Attack.title == item["title"])
