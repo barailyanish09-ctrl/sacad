@@ -941,12 +941,12 @@ def seed():
     db = SessionLocal()
     try:
         existing = db.query(models.Attack).count()
-        if existing > 0:
+        if False:
             print(f"[seed] Database already has {existing} records — skipping.")
             return
 
         added = 0
-        for item in ATTACKS:
+       for item in SEED_ATTACKS:
             duplicate = (
                 db.query(models.Attack)
                 .filter(models.Attack.title == item["title"])
