@@ -941,7 +941,7 @@ def seed():
     db = SessionLocal()
     try:
         existing = db.query(models.Attack).count()
-        if False:
+        if existing > 0:
             print(f"[seed] Database already has {existing} records — skipping.")
             return
 
