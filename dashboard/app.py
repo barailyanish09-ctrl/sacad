@@ -225,7 +225,7 @@ if stats:
         st.plotly_chart(fig4, use_container_width=True)
 
 # ── Threat Actor Chart ──
-if threat_actors:
+if threat_actors and isinstance(threat_actors, list) and len(threat_actors) > 0 and "actor" in threat_actors[0]:
     st.markdown('<div class="section-header">Top Threat Actors</div>', unsafe_allow_html=True)
     ta_df = pd.DataFrame(threat_actors)
     fig_ta = px.bar(ta_df, x="count", y="actor", orientation="h",
