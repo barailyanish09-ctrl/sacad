@@ -166,7 +166,54 @@ def ioc_search(
                      "ioc_ips": a.ioc_ips, "ioc_urls": a.ioc_urls} for a in results]
     }
 
+# ── /attacks/timeline ── Group by month
+@app.get("/attacks/timeline", tags=["Attacks"])
+def attacks_timeline(db: Session = Depends(get_db)):
+    attacks = db.query(Attack).filter(Attack.incident_date.isnot(None)).all()
+    timeline = {}
+    for a in attacks:
+        key = a.incident_date.strftime("%Y-%m")
+        timeline[key] = timeline.get(key, 0) + 1
+    return [{"month": k, "count": v} for k, v in sorted(timeline.items())]
 
+
+# ── /attacks/by-sector ── Group by sector
+@app.get("/attacks/by-sector", tags=["Attacks"])
+def attacks_by_sector(db: Session = Depends(get_db)):
+    rows = (
+        db.query(Attack.target_sector, func.count(Attack.id))
+        .group_by(Attack.target_sector)
+        .order_by(func.count(Attack.id).desc())
+        .all()
+    )
+    return [{"sector": r[0], "count": r[1]} for r in rows]
+
+
+# ── /attacks/threat-actors ── Top threat actors
+@app.get("/attacks/threat-actors", tags=["Attacks"])
+def top_threat_actors(db: Session = Depends(get_db)):
+    rows = (
+        db.query(Attack.threat_actor, func.count(Attack.id))
+        .filter(Attack.threat_actor.isnot(None))
+        .group_by(Attack.threat_actor)
+        .order_by(func.count(Attack.id).desc())
+        .limit(10)
+        .all()
+    )
+    return [{"actor": r[0], "count": r[1]} for r in rows]
+
+
+# ── /attacks/mitre ── MITRE ATT&CK breakdown
+@app.get("/attacks/mitre", tags=["Attacks"])
+def mitre_breakdown(db: Session = Depends(get_db)):
+    rows = (
+        db.query(Attack.mitre_tactic, func.count(Attack.id))
+        .filter(Attack.mitre_tactic.isnot(None))
+        .group_by(Attack.mitre_tactic)
+        .order_by(func.count(Attack.id).desc())
+        .all()
+    )
+    return [{"tactic": r[0], "count": r[1]} for r in rows]
 # ── /search ── Keyword search
 @app.get("/search", response_model=List[AttackOut], tags=["Attacks"])
 def search_attacks(

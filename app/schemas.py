@@ -68,6 +68,10 @@ class AttackCreate(BaseModel):
 
 
 class AttackOut(AttackCreate):
+    actor_type:         Optional[str]      = None
+    technique:          Optional[str]      = None
+    impact:             Optional[str]      = None
+    mitre_tactic:       Optional[str]      = None
     id:         int
     created_at: datetime
     updated_at: datetime

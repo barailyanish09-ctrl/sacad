@@ -34,6 +34,10 @@ class Attack(Base):
     malware_family      = Column(String(100), nullable=True)
 
     threat_actor        = Column(String(255), nullable=True)
+    actor_type          = Column(String(50), nullable=True)   # state-sponsored / cybercriminal / hacktivist
+    technique           = Column(String(255), nullable=True)  # MITRE ATT&CK e.g. T1566 Phishing
+    impact              = Column(String(50), nullable=True)   # data_breach / service_disruption / financial_loss
+    mitre_tactic        = Column(String(100), nullable=True)  # Initial Access / Execution / Exfiltration
     campaign_name       = Column(String(255), nullable=True)
 
     source_url          = Column(String(500), nullable=True)
