@@ -190,7 +190,7 @@ if stats:
 if timeline:
     st.markdown('<div class="section-header">Attack Timeline</div>', unsafe_allow_html=True)
     tdf = pd.DataFrame(timeline)
-    if not tdf.empty:
+    if not tdf.empty and "month" in tdf.columns and "count" in tdf.columns:
         fig_t = go.Figure()
         fig_t.add_trace(go.Scatter(
             x=tdf["month"], y=tdf["count"],
