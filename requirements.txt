@@ -8,3 +8,4 @@ feedparser
 beautifulsoup4
 python-dotenv
 httpx
+psycopg2-binary
