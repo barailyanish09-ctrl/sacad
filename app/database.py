@@ -12,7 +12,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
-    """Create tables only if they don't exist."""
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
 def get_db():
